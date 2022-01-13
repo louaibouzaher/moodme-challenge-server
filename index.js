@@ -13,11 +13,26 @@ const client = new MongoClient(uri, {
 });
 
 // Connect and get collection from db
-client.connect().then(() => console.log("Connected to DB 🔥"));
+client.connect().then(() => {
+  console.log("Connected to DB 🔥");
+
+  // Prepare grades for search
+  // This is a one time operation, but I will leave here for illustrative purposes
+
+  restaurants.updateMany({}, [
+    {
+      $set: { average: { $avg: "$grades.score" } },
+    },
+  ]);
+});
+
 const database = client.db("moodme");
 const restaurants = database.collection("restaurants");
 
-app.get("/", async (req, res) => {
+const MIN_AVERGAE_GRADE = 0;
+const MAX_AVERAGE_SCORE = 100;
+
+app.get("/search", async (req, res) => {
   const result = await search(req.query);
 
   if (result) {
@@ -34,13 +49,14 @@ app.get("/", async (req, res) => {
 async function search(queryParams) {
   try {
     // Set query queryParams
-
     const page = queryParams.page ? queryParams.page : 0;
     const limit = queryParams.limit ? queryParams.limit : 10;
 
     const name = queryParams.name;
     const cuisine = queryParams.cuisine;
     const street = queryParams.street;
+    const minAverageGrade = parseInt(queryParams.minAverageGrade);
+    const maxAverageGrade = parseInt(queryParams.maxAverageGrade);
 
     let query = {};
     if (name) {
@@ -54,6 +70,12 @@ async function search(queryParams) {
     if (street) {
       re = new RegExp("^" + street);
       query = { ...query, "address.street": { $regex: re, $options: "i" } };
+    }
+    if (minAverageGrade || maxAverageGrade) {
+      query.average = {
+        $gte: minAverageGrade ? minAverageGrade : MIN_AVERGAE_GRADE,
+        $lte: maxAverageGrade ? maxAverageGrade : MAX_AVERAGE_SCORE,
+      };
     }
 
     console.log(query);
