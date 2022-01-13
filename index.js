@@ -43,9 +43,18 @@ async function search(queryParams) {
     const street = queryParams.street;
 
     let query = {};
-    if (name) query.name = name;
-    if (cuisine) query.cuisine = cuisine;
-    if (street) query = { ...query, "address.street": { $eq: street } };
+    if (name) {
+      re = new RegExp("^" + name);
+      query.name = { $regex: re, $options: "i" };
+    }
+    if (cuisine) {
+      re = new RegExp("^" + cuisine);
+      query.cuisine = { $regex: re, $options: "i" };
+    }
+    if (street) {
+      re = new RegExp("^" + street);
+      query = { ...query, "address.street": { $regex: re, $options: "i" } };
+    }
 
     console.log(query);
 
