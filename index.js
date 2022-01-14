@@ -36,7 +36,6 @@ const MIN_AVERGAE_GRADE = 0;
 const MAX_AVERAGE_SCORE = 100;
 
 app.get("/search", async (req, res) => {
-  console.log(res.query);
   const result = await search(req.query);
 
   if (result) {
