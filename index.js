@@ -1,7 +1,10 @@
 const express = require("express");
 const app = express();
+const cors = require("cors");
 
 require("dotenv/config");
+
+app.use(cors());
 
 const { MongoClient } = require("mongodb");
 
@@ -33,6 +36,7 @@ const MIN_AVERGAE_GRADE = 0;
 const MAX_AVERAGE_SCORE = 100;
 
 app.get("/search", async (req, res) => {
+  console.log(res.query);
   const result = await search(req.query);
 
   if (result) {
@@ -46,11 +50,28 @@ app.get("/search", async (req, res) => {
   }
 });
 
+app.get("/cuisines", async (req, res) => {
+  const cuisines = [];
+  await restaurants
+    .aggregate([
+      { $group: { _id: { cuisine: "$cuisine" }, cuisineTotal: { $sum: 1 } } },
+    ])
+    .toArray()
+    .then((res) => {
+      res.forEach((c) => cuisines.push(c._id.cuisine));
+    })
+    .catch((err) => {
+      console.log("Error: Update unsuccessfull.");
+    });
+
+  res.json(cuisines);
+});
+
 async function search(queryParams) {
   try {
     // Set query queryParams
-    const page = queryParams.page ? queryParams.page : 0;
-    const limit = queryParams.limit ? queryParams.limit : 10;
+    const page = queryParams.page ? parseInt(queryParams.page) : 0;
+    const limit = queryParams.limit ? parseInt(queryParams.limit) : 10;
 
     const name = queryParams.name;
     const cuisine = queryParams.cuisine;
@@ -78,15 +99,11 @@ async function search(queryParams) {
       };
     }
 
-    console.log(query);
-
     var res = await restaurants
       .find(query)
       .skip(limit * page)
       .limit(limit)
       .toArray();
-
-    console.log(res);
 
     return res;
   } catch (err) {
